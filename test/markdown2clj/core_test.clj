@@ -170,3 +170,56 @@
          (parse "![alt text][logo]
 
 [logo]: /img/path/img.img \"Logo Title Text 2\"")))))
+
+(deftest parse-code
+  (testing "parse on inline code"
+    (is (= {:document [{:paragraph
+                        [{:text "Inline "}
+                         {:code [{:text "code"}]}
+                         {:text " has "}
+                         {:code [{:text "back-ticks around"}]}
+                         {:text " it."}]}]}
+           (parse "Inline `code` has `back-ticks around` it."))))
+
+  (testing "parse on fenced code block"
+    (is (= {:document [{:fenced-code-block
+                        [{:char \`}
+                         {:indentation 0}
+                         {:length 3}
+                         {:info "python"}
+                         {:text "s = \"Python syntax highlighting\"\nprint s\n"}]}]}
+         (parse "```python
+s = \"Python syntax highlighting\"
+print s
+```")))))
+
+(deftest parse-block-quote
+  (testing "parse on block quote"
+    (is (= {:document [{:block-quote
+                        [{:paragraph
+                          [{:text
+                            "Blockquotes are very handy in email to emulate reply text."}
+                           {:soft-line-break []}
+                           {:text "This line is part of the same quote."}]}]}]}
+         (parse "> Blockquotes are very handy in email to emulate reply text.
+> This line is part of the same quote.")))))
+
+(deftest parse-html
+  (testing "parse on inline html"
+    (is (= {:document
+            [{:paragraph
+              [{:text "This is a regular paragraph."}]}
+             {:html-block
+              [:text
+               "<table>\n    <tr>\n        <td>Foo</td>\n    </tr>\n</table>"]}
+             {:paragraph
+              [{:text "This is another regular paragraph."}]}]}
+         (parse "This is a regular paragraph.
+
+<table>
+    <tr>
+        <td>Foo</td>
+    </tr>
+</table>
+
+This is another regular paragraph.")))))
