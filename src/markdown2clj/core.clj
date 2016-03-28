@@ -11,6 +11,8 @@
             ListBlock ListItem Node OrderedList Paragraph
             SoftLineBreak StrongEmphasis Text ThematicBreak]))
 
+(declare parse)
+
 (defn get-siblings
   [node]
   (if (nil? node)
@@ -21,48 +23,66 @@
   [parent]
   (get-siblings (.getFirstChild parent)))
 
+(defn table?
+  [text]
+  (let [table (-> text
+                  parse
+                  :document
+                  first)]
+    (when (contains? table :table-block)
+      table)))
+
+(defn reduce-paragraph
+  [p]
+  (reduce (fn [string txt-map]
+            (if (contains? txt-map :text)
+              (str string (:text txt-map) "\n")
+              string))
+          ""
+          p))
+
 (defprotocol Visitor
-  (visit [this]))
+  (visit [this em-tables]))
 
 (extend-protocol Visitor
 
   Block
-  (visit [this]
+  (visit [this em-tables]
     {:block
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   BlockQuote
-  (visit [this]
+  (visit [this em-tables]
     {:block-quote
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   BulletList
-  (visit [this]
+  (visit [this em-tables]
     {:bullet-list
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   Code
-  (visit [this]
+  (visit [this _]
     {:code
      [{:text (.getLiteral this)}]})
 
   Document
-  (visit [this]
+  (visit [this em-tables]
     {:document
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   Emphasis
-  (visit [this]
+  (visit [this em-tables]
     {:italic
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   FencedCodeBlock
-  (visit [this]
+  (visit [this _]
     {:fenced-code-block
      [{:char (.getFenceChar this)}
       {:indentation (.getFenceIndent this)}
@@ -71,116 +91,120 @@
       {:text (.getLiteral this)}]})
 
   HardLineBreak
-  (visit [this]
+  (visit [this _]
     {:hard-line-break []})
 
   Heading
-  (visit [this]
+  (visit [this em-tables]
     {:heading
      (into [{:level (.getLevel this)}]
            (for [child (get-children this)]
-             (visit child)))})
+             (visit child em-tables)))})
 
   HtmlBlock
-  (visit [this]
+  (visit [this _]
     {:html-block
      [:text (.getLiteral this)]})
 
   HtmlInline
-  (visit [this]
+  (visit [this _]
     {:html-inline
      [:text (.getLiteral this)]})
 
   Image
-  (visit [this]
+  (visit [this em-tables]
     {:image
      (into [{:title (.getTitle this)}
             {:destination (.getDestination this)}]
            (for [child (get-children this)]
-             (visit child)))})
+             (visit child em-tables)))})
 
   IndentedCodeBlock
-  (visit [this]
+  (visit [this _]
     {:indented-code-block
      [{:text (.getLiteral this)}]})
 
   Link
-  (visit [this]
+  (visit [this em-tables]
     {:link
      (into [{:title (.getTitle this)}
             {:destination (.getDestination this)}]
            (for [child (get-children this)]
-             (visit child)))})
+             (visit child em-tables)))})
 
   ListItem
-  (visit [this]
+  (visit [this em-tables]
     {:list-item
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   OrderedList
-  (visit [this]
+  (visit [this em-tables]
     {:ordered-list
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   Paragraph
-  (visit [this]
-    {:paragraph
-     (into [] (for [child (get-children this)]
-                (visit child)))})
+  (visit [this em-tables]
+    (let [p (into [] (for [child (get-children this)]
+                       (visit child em-tables)))]
+      (if (true? em-tables)
+        (let [t (table? (reduce-paragraph p))]
+          (or t {:paragraph p}))
+        {:paragraph p})))
 
   StrongEmphasis
-  (visit [this]
+  (visit [this em-tables]
     {:bold
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   SoftLineBreak
-  (visit [this]
+  (visit [this _]
     {:soft-line-break []})
 
   TableBlock
-  (visit [this]
+  (visit [this em-tables]
     {:table-block
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   TableHead
-  (visit [this]
+  (visit [this em-tables]
     {:table-head
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   TableBody
-  (visit [this]
+  (visit [this em-tables]
     {:table-body
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   TableRow
-  (visit [this]
+  (visit [this em-tables]
     {:table-row
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   TableCell
-  (visit [this]
+  (visit [this em-tables]
     {:table-cell
      (into [] (for [child (get-children this)]
-                (visit child)))})
+                (visit child em-tables)))})
 
   Text
-  (visit [this]
+  (visit [this _]
     {:text (.getLiteral this)})
 
   ThematicBreak
-  (visit [this]
+  (visit [this _]
     {:thematic-break []}))
 
 (defn parse
-  [md-string]
-  (let [extention (list (TablesExtension/create))
-        parser (.build (.extensions (Parser/builder) extention))
-        md-document (.parse parser md-string)]
-    (visit md-document)))
+  ([md-string] (parse md-string false))
+  ([md-string embeded-tables]
+   (let [extention (list (TablesExtension/create))
+         parser (.build (.extensions (Parser/builder) extention))
+         md-document (.parse parser md-string)]
+     (visit md-document embeded-tables))))
