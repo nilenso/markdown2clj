@@ -11,6 +11,8 @@
             ListBlock ListItem Node OrderedList Paragraph
             SoftLineBreak StrongEmphasis Text ThematicBreak]))
 
+(declare parse)
+
 (defn get-siblings
   [node]
   (if (nil? node)
