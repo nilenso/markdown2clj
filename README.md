@@ -9,7 +9,7 @@ This is a wrapper over [commonmark-java](https://github.com/atlassian/commonmark
 
 ## Usage
 
-Add the following to your `:dependencies` in _project.clj_
+Add the following to your `:dependencies` in `project.clj`.
 ```clojure
 [markdown2clj "0.1.1-SNAPSHOT"]
 ```
