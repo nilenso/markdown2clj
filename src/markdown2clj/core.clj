@@ -195,7 +195,10 @@
 
   Text
   (visit [this _]
-    {:text (.getLiteral this)})
+    (let [text (.getLiteral this)]
+      (if (or (= text "\\pagebreak") (= text "\\newpage"))
+        {:page-break []}
+        {:text text})))
 
   ThematicBreak
   (visit [this _]
