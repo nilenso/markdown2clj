@@ -1,4 +1,4 @@
-(defproject markdown2clj "0.1.2-SNAPSHOT"
+(defproject markdown2clj "0.1.3-SNAPSHOT"
   :description "A library to convert markdown string to clojure data-structure"
   :url "http://nilenso.com/"
   :license {:name "Eclipse Public License"
