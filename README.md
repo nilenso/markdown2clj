@@ -11,7 +11,7 @@ This is a wrapper over [commonmark-java](https://github.com/atlassian/commonmark
 
 Add the following to your `:dependencies` in `project.clj`.
 ```clojure
-[markdown2clj "0.1.3-SNAPSHOT"]
+[markdown2clj "0.1.3"]
 ```
 In your code
 ```clojure
@@ -39,6 +39,3 @@ This library supports the commonmark specs as supported by the commonmarkjava li
 - Ordered Lists
 - Bullet Lists
 - Blockquote
-
-TODO:
-- Add `sample.md` & `sample.clj`
